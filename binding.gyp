@@ -9,6 +9,7 @@
                 'src/KeywordFilter.cpp',
                 'src/KeywordFilterCore.cpp'
             ],
+            'defines': ['NDEBUG'],
             'conditions': [
                 [ 'OS=="win"', {
 		    'msbuild_toolset': 'v140_xp',
