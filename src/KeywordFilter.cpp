@@ -94,7 +94,7 @@ NAN_METHOD(KeywordFilter::NodeNew) {
 		const int argc = 2;
 		Local<Value> argv[argc] = { info[0], info[1] };
 		Local<Function> cons = Nan::New(constructor);
-		info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+		info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
 	}
 }
 
