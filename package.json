@@ -21,5 +21,10 @@
     },
     "scripts": {
         "test": "node test"
-    }
+    },
+    "files": [
+        "src/",
+        "kwfilter.js",
+        "binding.gyp"
+    ]
 }
