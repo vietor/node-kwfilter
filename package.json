@@ -2,8 +2,15 @@
     "name": "kwfilter",
     "version": "1.0.0",
     "description": "A keyword filter C++ Addons for NodeJS",
-    "private": true,
+    "license": "ISC",
     "main": "./kwfilter.js",
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/vietor/node-kwfilter.git"
+    },
+    "keywords": [
+        "filter"
+    ],
     "engines": {
         "node": ">=0.8.0"
     },
@@ -11,5 +18,8 @@
         "nan": "^2.10.0"
     },
     "devDependencies": {
+    },
+    "scripts": {
+        "test": "node test"
     }
 }
