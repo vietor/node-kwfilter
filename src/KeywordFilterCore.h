@@ -4,7 +4,7 @@
 #include <vector>
 #ifndef __APPLE__
 #include <hash_map>
-#define better_map hash_map
+#define better_map __gnu_cxx::hash_map
 #else
 #include <unordered_map>
 #define better_map unordered_map
@@ -35,7 +35,7 @@ public:
 	virtual ~KeywordFilterCore();
 
 	bool exists(const KFString& text);
-	bool filter(KFString& output, const KFString& text, const KFChar cover, int border);
+	bool filter(KFString& output, const KFString& text, const KFChar cover, const int border);
 	bool render(KFString& output, const KFString& text, const KFString& prefix, const KFString& stuffix);
 	bool parser(KFPositionArray& output, const KFString& text);
 
