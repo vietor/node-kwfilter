@@ -2,18 +2,10 @@
 #define KEYWORDFILTERCORE_H
 
 #include <vector>
-#ifndef __APPLE__
-#include <hash_map>
-#define better_map hash_map
-#else
+#include <cwctype>
 #include <unordered_map>
-#define better_map unordered_map
-#endif
 
 using namespace std;
-#ifdef __GNUC__
-using namespace __gnu_cxx;
-#endif
 
 typedef enum {
 	KFModeDeep = 0,
@@ -44,7 +36,7 @@ public:
 
 private:
 	KFMode filter_mode;
-	better_map<KFChar, KFStringArray> keyword_map;
+	unordered_map<KFChar, KFStringArray> keyword_map;
 
 	bool process(const KFString& chars, void (*onskip)(size_t, size_t, void*), void (*onmark)(size_t, size_t, void*), void *context);
 };
