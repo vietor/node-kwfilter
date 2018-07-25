@@ -1,13 +1,16 @@
 var kwfilter = require('../');
 
-var origin = "KWFILTER1234567890kwfilter";
+var words2 = ["a"],
+    text2 = "aaaaaaaaa";
+var kf2 = kwfilter.newInstance(words2);
+console.log('\%j on %j', words2, text2);
+console.log('keyword filter: %j', kf2.filter(text2, '*'));
+console.log('keyword render: %j', kf2.render(text2, "<", ">"));
 
-var kf = kwfilter.newInstance([origin.charAt(0), origin.charAt(origin.length - 1)]);
-console.log('keyword exists: %j, filter: %j', kf.exists(origin), kf.filter(origin, '*'));
-
-var kf2 = kwfilter.newInstance(["a"]);
-console.log('keyword "a" sequence filter: %j', kf2.filter("aaaaaaaaa", '*'));
-console.log('keyword "a" sequence render: %j', kf2.render("aaaaaaaaa", "<", ">"));
-
-var kf3 = kwfilter.newInstance(["fuck", "sex"]);
-console.log('keyword parser: %j', kf3.parser("bad words like: fuck, sex, pron ..."));
+var words3 = ["fuck", "sex", "fu"],
+    text3 = "bad words like: fUCk, sex, pron, cafu...";
+var kf3 = kwfilter.newInstance(words3);
+console.log('\n%j on %j', words3, text3);
+console.log('keyword exitst: %j', kf3.exists(text3));
+console.log('keyword filter: %j', kf3.filter(text3, '*'));
+console.log('keyword parser: %j', kf3.parser(text3));
