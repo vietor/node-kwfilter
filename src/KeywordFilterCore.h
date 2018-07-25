@@ -4,13 +4,16 @@
 #include <vector>
 #ifndef __APPLE__
 #include <hash_map>
-#define better_map __gnu_cxx::hash_map
+#define better_map hash_map
 #else
 #include <unordered_map>
 #define better_map unordered_map
 #endif
 
 using namespace std;
+#ifdef __GNUC__
+using namespace __gnu_cxx;
+#endif
 
 typedef enum {
 	KFModeDeep = 0,
