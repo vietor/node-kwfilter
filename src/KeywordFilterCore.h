@@ -30,7 +30,7 @@ public:
 	virtual ~KeywordFilterCore();
 
 	bool exists(const KFString& text);
-	bool filter(KFString& output, const KFString& text, const KFChar cover, const int border);
+	bool filter(KFString& output, const KFString& text, KFChar cover, int border);
 	bool render(KFString& output, const KFString& text, const KFString& prefix, const KFString& stuffix);
 	bool parser(KFPositionArray& output, const KFString& text);
 

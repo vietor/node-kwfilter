@@ -258,7 +258,7 @@ static void filter_mark(size_t pos, size_t count, void *context)
 	}
 }
 
-bool KeywordFilterCore::filter(KFString& output, const KFString& text, const KFChar cover, const int border)
+bool KeywordFilterCore::filter(KFString& output, const KFString& text, KFChar cover, int border)
 {
 	if(text.size() < 1 || keyword_map.size() < 1)
 		return false;
