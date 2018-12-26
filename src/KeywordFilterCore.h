@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <cwctype>
+#include <functional>
 #include <unordered_map>
 
 using namespace std;
@@ -26,9 +27,14 @@ typedef vector<KFPosition> KFPositionArray;
 class KeywordFilterCore
 {
 	typedef struct TrieNode {
-		int word;
-		int level;
-		unordered_map<KFChar, TrieNode> children;
+		KFChar key;
+		int word :1;
+		int level:15;
+		unordered_map<KFChar, struct TrieNode> children;
+
+		std::size_t operator()(const struct TrieNode& node) const{
+			return node.key;
+		}
 	} TrieNode;
 public:
 	KeywordFilterCore(const KFStringArray& keywords, KFMode mode);
