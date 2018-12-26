@@ -19,10 +19,10 @@ KeywordFilterCore::KeywordFilterCore(const KFStringArray& keywords, KFMode mode)
 			KFChar k = towlower_exec(*key);
 			auto child = trie->children.find(k);
 			if(child == trie->children.end()) {
-				auto pair = trie->children.insert(make_pair(k, TrieNode{.key=k,.word=0, .level=trie->level + 1}));
+				auto pair = trie->children.insert(make_pair(k, new TrieNode{.key=k,.word=0, .level=trie->level + 1}));
 				child = pair.first;
 			}
-			trie = &child->second;
+			trie = child->second;
 		}
 		trie->word = 1;
 	}
@@ -30,6 +30,15 @@ KeywordFilterCore::KeywordFilterCore(const KFStringArray& keywords, KFMode mode)
 
 KeywordFilterCore::~KeywordFilterCore()
 {
+	clearTrieNode(&keyword_trie);
+}
+
+void KeywordFilterCore::clearTrieNode(TrieNode* node) {
+	for(auto it = node->children.begin(); it != node->children.end(); ++it){
+		clearTrieNode(it->second);
+		delete it->second;
+	}
+	node->children.clear();
 }
 
 static inline bool is_wordstop(KFChar ch) {
@@ -68,7 +77,7 @@ bool KeywordFilterCore::exists(const KFString& text)
 		KFChar k = chars[pos];
 		auto child = trie->children.find(k);
 		if(child != trie->children.end()) {
-			trie = &child->second;
+			trie = child->second;
 			++pos;
 			if(trie->word)
 				has = true;
@@ -102,7 +111,7 @@ bool KeywordFilterCore::process(const KFString& text, void (*onskip)(size_t, siz
 		KFChar k = chars[pos];
 		auto child = trie->children.find(k);
 		if(child != trie->children.end()) {
-			trie = &child->second;
+			trie = child->second;
 			if(skip) {
 				skip = false;
 				if(pos > start_pos) {

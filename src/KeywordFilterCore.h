@@ -30,11 +30,7 @@ class KeywordFilterCore
 		KFChar key;
 		int word :1;
 		int level:15;
-		unordered_map<KFChar, struct TrieNode> children;
-
-		std::size_t operator()(const struct TrieNode& node) const{
-			return node.key;
-		}
+		unordered_map<KFChar, struct TrieNode*> children;
 	} TrieNode;
 public:
 	KeywordFilterCore(const KFStringArray& keywords, KFMode mode);
@@ -50,6 +46,8 @@ private:
         TrieNode keyword_trie;
 
 	bool process(const KFString& chars, void (*onskip)(size_t, size_t, void*), void (*onmark)(size_t, size_t, void*), void *context);
+
+	static void clearTrieNode(TrieNode* node);
 };
 
 #endif
