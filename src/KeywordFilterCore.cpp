@@ -14,15 +14,16 @@ KeywordFilterCore::KeywordFilterCore(const KFStringArray& keywords, KFMode mode)
 {
 	filter_mode = mode;
 	for(auto keyword = keywords.begin(); keyword != keywords.end(); ++keyword) {
-		TrieNode* trie = &keyword_trie;
+		TrieNode *node, *trie = &keyword_trie;
 		for(auto key = keyword->begin(); key != keyword->end(); ++key) {
 			KFChar k = towlower_exec(*key);
 			auto child = trie->children.find(k);
 			if(child != trie->children.end())
 				trie = child->second;
 			else {
-				trie = new TrieNode{.key=k,.word=0, .level=trie->level + 1, .children={}};
-				trie->children.insert(make_pair(k, trie));
+				node = new TrieNode{.key=k,.word=0, .level=trie->level + 1, .children={}};
+				trie->children.insert(make_pair(k, node));
+				trie = node;
 			}
 		}
 		trie->word = 1;
