@@ -1,3 +1,4 @@
+#include <stack>
 #include <cctype>
 #include <algorithm>
 #include "KeywordFilterCore.h"
@@ -21,7 +22,7 @@ KeywordFilterCore::KeywordFilterCore(const KFStringArray& keywords, KFMode mode)
 			if(child != trie->children.end())
 				trie = child->second;
 			else {
-				node = new TrieNode{.key=k,.word=0, .level=trie->level + 1, .children={}};
+				node = new TrieNode{.key=k, .word=0, .level=trie->level + 1U, .children={}};
 				trie->children.insert(make_pair(k, node));
 				trie = node;
 			}
@@ -32,15 +33,27 @@ KeywordFilterCore::KeywordFilterCore(const KFStringArray& keywords, KFMode mode)
 
 KeywordFilterCore::~KeywordFilterCore()
 {
-	clearTrieNode(&keyword_trie);
-}
+	TrieNode *trie;
+	stack<TrieNode*> nodes;
 
-void KeywordFilterCore::clearTrieNode(TrieNode* node) {
-	for(auto it = node->children.begin(); it != node->children.end(); ++it){
-		clearTrieNode(it->second);
-		delete it->second;
+	for(auto it = keyword_trie.children.begin(); it != keyword_trie.children.end(); ++it){
+		nodes.push(it->second);
 	}
-	node->children.clear();
+	keyword_trie.children.clear();
+
+	while(!nodes.empty()) {
+		trie = nodes.top();
+		if(trie->children.empty()) {
+			nodes.pop();
+			delete trie;
+		}
+		else {
+			for(auto it = trie->children.begin(); it != trie->children.end(); ++it){
+				nodes.push(it->second);
+			}
+			trie->children.clear();
+		}
+	}
 }
 
 static inline bool is_wordstop(KFChar ch) {

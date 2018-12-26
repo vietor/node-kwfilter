@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <cwctype>
-#include <functional>
 #include <unordered_map>
 
 using namespace std;
@@ -28,8 +27,8 @@ class KeywordFilterCore
 {
 	typedef struct TrieNode {
 		KFChar key;
-		int word :1;
-		int level:15;
+		unsigned int word :1;
+		unsigned int level:15;
 		unordered_map<KFChar, struct TrieNode*> children;
 	} TrieNode;
 public:
@@ -46,8 +45,6 @@ private:
         TrieNode keyword_trie;
 
 	bool process(const KFString& chars, void (*onskip)(size_t, size_t, void*), void (*onmark)(size_t, size_t, void*), void *context);
-
-	static void clearTrieNode(TrieNode* node);
 };
 
 #endif
