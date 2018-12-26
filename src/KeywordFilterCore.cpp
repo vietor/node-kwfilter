@@ -9,61 +9,22 @@ static inline KFChar fast_towlower(KFChar ch)
 
 #define towlower_exec fast_towlower
 
-static bool keyword_equal_pred(const KFString& a, const KFString& b)
-{
-	int ret = a.size() - b.size();
-	if(ret == 0) {
-		for(size_t i = 1, length = a.size(); ret == 0 && i < length; ++i) {
-			ret = (int)a[i] - (int)b[i];
-		}
-	}
-	return ret == 0;
-}
-
-static bool keyword_sort_pred(const KFString& a, const KFString& b)
-{
-	int ret = 0;
-	for(size_t i = 1, length = min(a.size(), b.size()); ret == 0 && i < length; ++i) {
-		ret = (int)a[i] - (int)b[i];
-	}
-	return ret < 0? true: (ret == 0? a.size() > b.size(): false);
-}
-
 KeywordFilterCore::KeywordFilterCore(const KFStringArray& keywords, KFMode mode)
+	:keyword_trie{.word = 0, .level = 0}
 {
 	filter_mode = mode;
-	for(auto i = keywords.begin(); i != keywords.end(); ++i) {
-		const KFString& keyword = *i;
-		KFChar first_char = towlower_exec(keyword[0]);
-		auto it = keyword_map.find(first_char);
-		if(it == keyword_map.end()) {
-			keyword_map.insert(make_pair(first_char, KFStringArray()));
-			it = keyword_map.find(first_char);
-		}
-		it->second.push_back(keyword);
-		KFString& chars = it->second.back();
-		transform(chars.begin(), chars.end(), chars.begin(), towlower_exec);
-	}
-
-	for(auto it = keyword_map.begin(); it != keyword_map.end(); ++it) {
-		sort(it->second.begin(), it->second.end(), keyword_sort_pred);
-		it->second.erase(unique(it->second.begin(), it->second.end(), keyword_equal_pred), it->second.end());
-
-		KFString* last_ptr = NULL;
-		for(auto ic = it->second.begin(); ic != it->second.end(); ++ic) {
-			KFChar skip = 1;
-			KFString& curr = *ic;
-			if(last_ptr) {
-				KFString& last = *last_ptr;
-				while(skip < min(last.size(), curr.size())) {
-					if(last[skip] != curr[skip])
-						break;
-					++skip;
-				}
+	for(auto keyword = keywords.begin(); keyword != keywords.end(); ++keyword) {
+		TrieNode* trie = &keyword_trie;
+		for(auto key = keyword->begin(); key != keyword->end(); ++key) {
+			KFChar k = towlower_exec(*key);
+			auto child = trie->children.find(k);
+			if(child == trie->children.end()) {
+				auto pair = trie->children.insert(make_pair(k, TrieNode{.word=0, .level=trie->level + 1}));
+				child = pair.first;
 			}
-			curr[0] = skip;
-			last_ptr = &curr;
+			trie = &child->second;
 		}
+		trie->word = 1;
 	}
 }
 
@@ -92,135 +53,94 @@ static size_t skip_next_word(const KFString& chars, size_t& pos, size_t length) 
 
 bool KeywordFilterCore::exists(const KFString& text)
 {
-	if(text.size() < 1 || keyword_map.size() < 1)
+	if(text.size() < 1)
 		return false;
 
 	KFString chars(text.size());
 	transform(text.begin(), text.end(), chars.begin(), towlower_exec);
 
-	bool has = false;
 	size_t pos = 0, length = chars.size();
 	skip_some_space(chars, pos, length);
+
+	bool has = false;
+	TrieNode* trie = &keyword_trie;
 	while(!has && pos < length) {
-		KFChar first_char = chars[pos];
-		auto it = keyword_map.find(first_char);
-		if(it == keyword_map.end()) {
+		KFChar k = chars[pos];
+		auto child = trie->children.find(k);
+		if(child != trie->children.end()) {
+			trie = &child->second;
 			++pos;
-			if(filter_mode == KFModeWord && !is_wordstop(first_char)) {
+			if(trie->word)
+				has = true;
+		}
+		else {
+			trie = &keyword_trie;
+			++pos;
+			if(filter_mode == KFModeWord && !is_wordstop(k)) {
 				skip_next_word(chars, pos, length);
 			}
-			continue;
 		}
-
-		size_t last_skip = 1;
-		for(auto ic = it->second.rbegin(); ic != it->second.rend(); ++ic) {
-			const KFString& curr = *ic;
-			const size_t curr_size = curr.size();
-
-			if(last_skip > 1)
-				continue;
-			if(pos + curr_size > length) {
-				last_skip = 1;
-				continue;
-			}
-
-			bool mark = true;
-			last_skip = curr[0];
-			for(size_t i = 1; i < curr_size; ++i) {
-				if(chars[pos + i] != curr[i]) {
-					mark = false;
-					break;
-				}
-			}
-			if(mark) {
-				if(filter_mode == KFModeDeep)
-					has = true;
-				else if(pos + curr_size >= length || is_wordstop(chars[pos + curr_size]))
-					has = true;
-				break;
-			}
-		}
-
-		++pos;
-		if(filter_mode == KFModeWord && !is_wordstop(chars[pos - 1]))
-			skip_next_word(chars, pos, length);
 	}
 	return has;
 }
 
-bool KeywordFilterCore::process(const KFString& chars, void (*onskip)(size_t, size_t, void*), void (*onmark)(size_t, size_t, void*), void *context)
+bool KeywordFilterCore::process(const KFString& text, void (*onskip)(size_t, size_t, void*), void (*onmark)(size_t, size_t, void*), void *context)
 {
-	bool has = false;
-	size_t skip_pos = 0, skip_count = 0;
+	if(text.size() < 1)
+		return false;
+
+	KFString chars(text.size());
+	transform(text.begin(), text.end(), chars.begin(), towlower_exec);
+
 	size_t pos = 0, length = chars.size();
+	skip_some_space(chars, pos, length);
+
+	bool has = false, skip = true;
+	TrieNode* trie = &keyword_trie;
+	size_t start_pos = pos, mark_end = 0;
 	while(pos < length) {
-		KFChar first_char = chars[pos];
-		auto it = keyword_map.find(first_char);
-		if(it == keyword_map.end()) {
-			if(!skip_count)
-				skip_pos = pos;
+		KFChar k = chars[pos];
+		auto child = trie->children.find(k);
+		if(child != trie->children.end()) {
+			trie = &child->second;
+			if(skip) {
+				skip = false;
+				if(pos > start_pos) {
+					onskip(start_pos, pos - start_pos, context);
+				}
+				start_pos = pos;
+			}
 			++pos;
-			++skip_count;
-			if(filter_mode == KFModeWord && !is_wordstop(first_char)) {
-				skip_count += skip_next_word(chars, pos, length);
-			}
-			continue;
-		}
-
-		bool marked = false;
-		size_t last_skip = 1;
-		for(auto ic = it->second.begin(); ic != it->second.end(); ++ic) {
-			const KFString& curr = *ic;
-			const size_t curr_size = curr.size();
-
-			size_t skip = curr[0];
-			if(last_skip > 1 && skip > last_skip)
-				continue;
-			if(pos + curr_size > length) {
-				last_skip = 1;
-				continue;
-			}
-
-			bool mark = true;
-			for(size_t i = min(last_skip, skip); i < curr_size; ++i) {
-				last_skip = i;
-				if(chars[pos + i] != curr[i]) {
-					mark = false;
-					break;
-				}
-			}
-			if(mark) {
-				if(filter_mode == KFModeDeep)
-					marked = true;
-				else if(pos + curr_size >= length || is_wordstop(chars[pos + curr_size]))
-					marked = true;
-				if(marked) {
-					last_skip = 1;
-					if(skip_count) {
-						onskip(skip_pos, skip_count, context);
-						skip_pos = skip_count = 0;
-					}
-					onmark(pos, curr_size, context);
-					pos += curr_size;
-				}
-				break;
+			if(trie->word) {
+				has = true;
+				mark_end = pos;
 			}
 		}
-
-
-		if(marked)
-			has = true;
 		else {
-			if(!skip_count)
-				skip_pos = pos;
-			++pos;
-			++skip_count;
-			if(filter_mode == KFModeWord && !is_wordstop(chars[pos - 1]))
-				skip_count += skip_next_word(chars, pos, length);
+			trie = &keyword_trie;
+			if(skip)
+				++pos;
+			else {
+				skip = true;
+				if(mark_end < 1)
+					pos = start_pos + 1;
+				else {
+					onmark(start_pos, mark_end - start_pos, context);
+					start_pos = pos = mark_end;
+					mark_end = 0;
+				}
+			}
+			if(filter_mode == KFModeWord && !is_wordstop(k)) {
+				skip_next_word(chars, pos, length);
+			}
 		}
 	}
-	if(skip_count) {
-		onskip(skip_pos, skip_count, context);
+	if(mark_end > 0) {
+		onmark(start_pos, mark_end - start_pos, context);
+		start_pos = mark_end;
+	}
+	if(pos > start_pos) {
+		onskip(start_pos, pos - start_pos, context);
 	}
 	return has;
 }
@@ -260,17 +180,11 @@ static void filter_mark(size_t pos, size_t count, void *context)
 
 bool KeywordFilterCore::filter(KFString& output, const KFString& text, KFChar cover, int border)
 {
-	if(text.size() < 1 || keyword_map.size() < 1)
-		return false;
-
-	KFString chars(text.size());
-	transform(text.begin(), text.end(), chars.begin(), towlower_exec);
-
 	output.resize(text.size());
 	struct filter_params params = {
 		output, text, cover, size_t(border < 3? 0: border)
 	};
-	return process(chars, filter_skip, filter_mark, &params);
+	return process(text, filter_skip, filter_mark, &params);
 }
 
 struct render_params {
@@ -301,26 +215,19 @@ static void render_mark(size_t pos, size_t count, void *context)
 
 bool KeywordFilterCore::render(KFString& output, const KFString& text, const KFString& prefix, const KFString& stuffix)
 {
-	if(text.size() < 1 || keyword_map.size() < 1)
-		return false;
-
-	KFString chars(text.size());
-	transform(text.begin(), text.end(), chars.begin(), towlower_exec);
-
 	output.resize(0);
 	struct render_params params = {
 		output, text, prefix, stuffix
 	};
-	return process(chars, render_skip, render_mark, &params);
+	return process(text, render_skip, render_mark, &params);
 }
-
 
 struct parser_params {
 	KFPositionArray& output;
 	const KFString& text;
 };
 
-static void parser_skip(size_t pos, size_t count, void *context)
+static void parser_skip(size_t, size_t, void*)
 {
 }
 
@@ -335,14 +242,8 @@ static void parser_mark(size_t pos, size_t count, void *context)
 
 bool KeywordFilterCore::parser(KFPositionArray& output, const KFString& text)
 {
-	if(text.size() < 1 || keyword_map.size() < 1)
-		return false;
-
-	KFString chars(text.size());
-	transform(text.begin(), text.end(), chars.begin(), towlower_exec);
-
 	struct parser_params params = {
 		output, text
 	};
-	return process(chars, parser_skip, parser_mark, &params);
+	return process(text, parser_skip, parser_mark, &params);
 }

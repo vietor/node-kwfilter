@@ -25,6 +25,11 @@ typedef vector<KFPosition> KFPositionArray;
 
 class KeywordFilterCore
 {
+	typedef struct TrieNode {
+		int word;
+		int level;
+		unordered_map<KFChar, TrieNode> children;
+	} TrieNode;
 public:
 	KeywordFilterCore(const KFStringArray& keywords, KFMode mode);
 	virtual ~KeywordFilterCore();
@@ -36,7 +41,7 @@ public:
 
 private:
 	KFMode filter_mode;
-	unordered_map<KFChar, KFStringArray> keyword_map;
+        TrieNode keyword_trie;
 
 	bool process(const KFString& chars, void (*onskip)(size_t, size_t, void*), void (*onmark)(size_t, size_t, void*), void *context);
 };
