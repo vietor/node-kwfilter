@@ -10,7 +10,7 @@ static inline KFChar fast_towlower(KFChar ch)
 #define towlower_exec fast_towlower
 
 KeywordFilterCore::KeywordFilterCore(const KFStringArray& keywords, KFMode mode)
-	:keyword_trie{.key=0, .word = 0, .level = 0}
+	:keyword_trie{.key=0, .word = 0, .level = 0, .children={}}
 {
 	filter_mode = mode;
 	for(auto keyword = keywords.begin(); keyword != keywords.end(); ++keyword) {
@@ -18,11 +18,12 @@ KeywordFilterCore::KeywordFilterCore(const KFStringArray& keywords, KFMode mode)
 		for(auto key = keyword->begin(); key != keyword->end(); ++key) {
 			KFChar k = towlower_exec(*key);
 			auto child = trie->children.find(k);
-			if(child == trie->children.end()) {
-				auto pair = trie->children.insert(make_pair(k, new TrieNode{.key=k,.word=0, .level=trie->level + 1}));
-				child = pair.first;
+			if(child != trie->children.end())
+				trie = child->second;
+			else {
+				trie = new TrieNode{.key=k,.word=0, .level=trie->level + 1, .children={}};
+				trie->children.insert(make_pair(k, trie));
 			}
-			trie = child->second;
 		}
 		trie->word = 1;
 	}
