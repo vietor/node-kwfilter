@@ -1,5 +1,4 @@
 #include <stack>
-#include <cctype>
 #include <algorithm>
 #include "KeywordFilterCore.h"
 
@@ -61,19 +60,15 @@ static inline bool is_wordstop(KFChar ch) {
 	return iswspace(ch) || iswpunct(ch) || ch > 0x7f;
 }
 
-static size_t skip_some_space(const KFString& chars, size_t& pos, size_t length) {
-	size_t old = pos;
+static void skip_some_space(const KFString& chars, size_t& pos, size_t length) {
 	while(pos < length && iswspace(chars[pos]))
 		++pos;
-	return pos - old;
 }
 
-static size_t skip_next_word(const KFString& chars, size_t& pos, size_t length) {
-	size_t old = pos;
+static void skip_next_word(const KFString& chars, size_t& pos, size_t length) {
 	while(pos < length && !is_wordstop(chars[pos]))
 		++pos;
 	skip_some_space(chars, pos, length);
-	return pos - old;
 }
 
 bool KeywordFilterCore::exists(const KFString& text)

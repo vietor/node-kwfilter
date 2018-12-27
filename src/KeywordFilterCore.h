@@ -2,7 +2,6 @@
 #define KEYWORDFILTERCORE_H
 
 #include <vector>
-#include <cwctype>
 #include <unordered_map>
 
 using namespace std;
