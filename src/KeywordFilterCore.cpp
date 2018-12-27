@@ -1,4 +1,5 @@
 #include <stack>
+#include <cwctype>
 #include <algorithm>
 #include "KeywordFilterCore.h"
 
