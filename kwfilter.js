@@ -16,6 +16,7 @@ function tryLoadModule(relative, name, suffix) {
         node = tryRequire(relative + suffix + '-' + process.arch);
     if (!node)
         node = tryRequire(relative + suffix);
+    return node;
 }
 
 var kwfilter = tryRequire('./build/Release/kwfilter');
