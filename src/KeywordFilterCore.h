@@ -26,9 +26,7 @@ typedef vector<KFPosition> KFPositionArray;
 class KeywordFilterCore
 {
 	typedef struct TrieNode {
-		KFChar key;
-		unsigned int word :1;
-		unsigned int level:15;
+		bool word;
 		unordered_map<KFChar, struct TrieNode*> children;
 	} TrieNode;
 public:

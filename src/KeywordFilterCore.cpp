@@ -13,9 +13,7 @@ static inline KFChar fast_towlower(KFChar ch)
 KeywordFilterCore::KeywordFilterCore(const KFStringArray& keywords, KFMode mode)
 {
 	filter_mode = mode;
-	keyword_trie.key = 0;
-	keyword_trie.word = 0;
-	keyword_trie.level = 0;
+	keyword_trie.word = false;
 	for(auto keyword = keywords.begin(); keyword != keywords.end(); ++keyword) {
 		TrieNode *node, *trie = &keyword_trie;
 		for(auto key = keyword->begin(); key != keyword->end(); ++key) {
@@ -25,14 +23,12 @@ KeywordFilterCore::KeywordFilterCore(const KFStringArray& keywords, KFMode mode)
 				trie = child->second;
 			else {
 				node = new TrieNode;
-				node->key = k;
-				node->word = 0;
-				node->level = trie->level + 1U;
+				node->word = false;
 				trie->children.insert(make_pair(k, node));
 				trie = node;
 			}
 		}
-		trie->word = 1;
+		trie->word = true;
 	}
 }
 
@@ -91,20 +87,31 @@ bool KeywordFilterCore::exists(const KFString& text)
 	size_t pos = 0, length = chars.size();
 	skip_some_space(chars, pos, length);
 
-	bool has = false;
+	bool has = false, skip = true;
 	TrieNode* trie = &keyword_trie;
+	size_t start_pos = pos;
 	while(!has && pos < length) {
 		KFChar k = chars[pos];
 		auto child = trie->children.find(k);
 		if(child != trie->children.end()) {
 			trie = child->second;
+			if(skip) {
+				skip = false;
+				start_pos = pos;
+			}
 			++pos;
-			if(trie->word)
+			if(trie->word) {
 				has = true;
+			}
 		}
 		else {
 			trie = &keyword_trie;
-			++pos;
+			if(skip)
+				++pos;
+			else {
+				skip = true;
+				pos = start_pos + 1;
+			}
 			if(filter_mode == KFModeWord && !is_wordstop(k)) {
 				skip_next_word(chars, pos, length);
 			}

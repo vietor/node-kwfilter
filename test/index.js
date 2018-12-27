@@ -27,3 +27,11 @@ console.log('keyword exists: %j', kf3.exists(text3));
 console.log('keyword filter: %j', kf3.filter(text3, '*'));
 console.log('keyword render: %j', kf3.render(text3, '<', '>'));
 console.log('keyword parser: %j', kf3.parser(text3));
+
+var words4 = ["ab", "ac"],
+    texts4 = ["aaaa", "aaacaa", "aaaabc"];
+var kf4 = kwfilter.newInstance(words4);
+texts4.forEach(function(text4) {
+    console.log('%j on %j', words4, text4);
+    console.log('keyword exists: %j', kf4.exists(text4));
+});
