@@ -1,11 +1,6 @@
 #include <nan.h>
 #include "KeywordFilterCore.h"
 
-#ifdef _MSC_VER
-#pragma warning(disable:4506)
-#pragma warning(disable:4530)
-#endif
-
 using namespace v8;
 using namespace node;
 
