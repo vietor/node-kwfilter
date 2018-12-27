@@ -35,7 +35,7 @@ public:
 
 	bool exists(const KFString& text);
 	bool filter(KFString& output, const KFString& text, KFChar cover, int border);
-	bool render(KFString& output, const KFString& text, const KFString& prefix, const KFString& stuffix);
+	bool render(KFString& output, const KFString& text, const KFString& prefix, const KFString& suffix);
 	bool parser(KFPositionArray& output, const KFString& text);
 
 private:

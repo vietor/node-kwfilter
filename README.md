@@ -46,9 +46,9 @@ Check if **keyword** in the **text**.
 
 Replace the **keyword** in **text** with **cover character**.
 
-### render(text, prefix, stuffix)
+### render(text, prefix, suffix)
 
-Wrap the **keyword** in **text** with **prefix** and **stuffix**.
+Wrap the **keyword** in **text** with **prefix** and **suffix**.
 
 ### parser(text)
 

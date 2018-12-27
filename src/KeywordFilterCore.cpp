@@ -227,7 +227,7 @@ struct render_params {
 	KFString& output;
 	const KFString& text;
 	const KFString& prefix;
-	const KFString& stuffix;
+	const KFString& suffix;
 };
 
 static void render_skip(size_t pos, size_t count, void *context)
@@ -245,15 +245,15 @@ static void render_mark(size_t pos, size_t count, void *context)
 		params->output.insert(params->output.end(), params->prefix.begin(), params->prefix.end());
 	for(size_t j = 0; j < count; ++j)
 		params->output.push_back(params->text[pos + j]);
-	if(params->stuffix.size() > 0)
-		params->output.insert(params->output.end(), params->stuffix.begin(), params->stuffix.end());
+	if(params->suffix.size() > 0)
+		params->output.insert(params->output.end(), params->suffix.begin(), params->suffix.end());
 }
 
-bool KeywordFilterCore::render(KFString& output, const KFString& text, const KFString& prefix, const KFString& stuffix)
+bool KeywordFilterCore::render(KFString& output, const KFString& text, const KFString& prefix, const KFString& suffix)
 {
 	output.resize(0);
 	struct render_params params = {
-		output, text, prefix, stuffix
+		output, text, prefix, suffix
 	};
 	return process(text, render_skip, render_mark, &params);
 }

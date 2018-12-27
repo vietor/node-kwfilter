@@ -154,12 +154,12 @@ NAN_METHOD(KeywordFilter::NodeRender) {
 		ThrowTypeErrorAndReturnUndefined("Wrong number of arguments");
 	}
 	if(!info[0]->IsString() || !info[1]->IsString() || !info[2]->IsString()) {
-		ThrowTypeErrorAndReturnUndefined("Wrong arguments, (string, prefix, stuffix)");
+		ThrowTypeErrorAndReturnUndefined("Wrong arguments, (string, prefix, suffix)");
 	}
 
 	Local<String> text = info[0]->ToString();
 	Local<String> prefix = info[1]->ToString();
-	Local<String> stuffix = info[2]->ToString();
+	Local<String> suffix = info[2]->ToString();
 	KeywordFilter* obj = ObjectWrap::Unwrap<KeywordFilter>(info.This());
 
 
@@ -168,11 +168,11 @@ NAN_METHOD(KeywordFilter::NodeRender) {
 		KFString output,
 			chars(text->Length()),
 			prefix_chars(prefix->Length()),
-			stuffix_chars(stuffix->Length());
+			suffix_chars(suffix->Length());
 		text->Write(&chars[0], 0, text->Length());
 		prefix->Write(&prefix_chars[0], 0, prefix->Length());
-		stuffix->Write(&stuffix_chars[0], 0, stuffix->Length());
-		if(obj->core->render(output, chars, prefix_chars, stuffix_chars))
+		suffix->Write(&suffix_chars[0], 0, suffix->Length());
+		if(obj->core->render(output, chars, prefix_chars, suffix_chars))
 			retVal =  Nan::New(&output[0], (int)output.size()).ToLocalChecked();
 	}
 
