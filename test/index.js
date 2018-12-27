@@ -25,4 +25,5 @@ var kf3 = kwfilter.newInstance(words3);
 console.log('%j on %j', words3, text3);
 console.log('keyword exists: %j', kf3.exists(text3));
 console.log('keyword filter: %j', kf3.filter(text3, '*'));
+console.log('keyword render: %j', kf3.render(text3, '<', '>'));
 console.log('keyword parser: %j', kf3.parser(text3));
