@@ -22,8 +22,7 @@
                         'OTHER_CPLUSPLUSFLAGS' : ['-O2', '-funroll-loops', '-stdlib=libc++ -std=c++11']
                     }
                 }, {
-                    'cflags': [ '-O2', '-funroll-loops','-std=c++0x', '-Wno-deprecated' ],
-                    'ldflags': [ '-static-libstdc++' ]
+                    'cflags': [ '-O2', '-funroll-loops','-std=c++0x', '-Wno-deprecated' ]
                 }]
             ]
         }
