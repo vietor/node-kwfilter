@@ -98,6 +98,9 @@ bool KeywordFilterCore::exists(const KFString& text)
 			++pos;
 			if(trie->word) {
 				has = true;
+				if(filter_mode == KFModeWord && pos < length && !is_wordstop(chars[pos])) {
+					has = false;
+				}
 			}
 		}
 		else {
@@ -145,7 +148,12 @@ bool KeywordFilterCore::process(const KFString& text, void (*onskip)(size_t, siz
 			++pos;
 			if(trie->word) {
 				has = true;
-				mark_end = pos;
+				if(filter_mode == KFModeWord && pos < length && !is_wordstop(chars[pos])) {
+					has = false;
+				}
+				if(has) {
+					mark_end = pos;
+				}
 			}
 		}
 		else {
