@@ -25,6 +25,7 @@ var kf3 = kwfilter.newInstance(words3);
 console.log('%j on %j', words3, text3);
 console.log('keyword exists: %j', kf3.exists(text3));
 console.log('keyword filter: %j', kf3.filter(text3, '*'));
+console.log('keyword filter3: %j', kf3.filter(text3, '*', 3));
 console.log('keyword render: %j', kf3.render(text3, '<', '>'));
 console.log('keyword parser: %j', kf3.parser(text3));
 
@@ -34,4 +35,13 @@ var kf4 = kwfilter.newInstance(words4);
 texts4.forEach(function(text4) {
     console.log('%j on %j', words4, text4);
     console.log('keyword exists: %j', kf4.exists(text4));
+});
+
+var words5 = ["ass", "uc"],
+    texts5 = ["assemblicy", "fuck"];
+var kf5 = kwfilter.newInstance(words5, 1);
+texts5.forEach(function(text5) {
+    console.log('%j on %j', words5, text5);
+    console.log('keyword exists: %j', kf5.exists(text5));
+    console.log('keyword filter: %j', kf5.filter(text5, '*'));
 });
