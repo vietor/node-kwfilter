@@ -1,7 +1,4 @@
-var fs = require('fs');
-
 function tryRequire(module) {
-    console.log(module);
     try {
         return require(module);
     } catch (e) {
