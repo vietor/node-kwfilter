@@ -1,6 +1,7 @@
 var fs = require('fs');
 
 function tryRequire(module) {
+    console.log(module);
     try {
         return require(module);
     } catch (e) {
@@ -19,17 +20,17 @@ function tryLoadModule(relative, name, suffix) {
     return node;
 }
 
-var kwfilter = tryRequire('./build/Release/kwfilter');
-if (!kwfilter)
-    kwfilter = tryLoadModule('./build/', 'kwfilter', process.platform + '-' + process.version);
-if (!kwfilter)
-    kwfilter = tryLoadModule('./build/', 'kwfilter', process.platform + '-' + (process.version.split('.').slice(0, 2).join('.')));
-if (!kwfilter)
-    kwfilter = tryLoadModule('./build/', 'kwfilter', process.platform);
+var binding = tryRequire('./build/Release/kwfilter');
+if (!binding) {
+    var versions = [process.version, process.version.split('.').slice(0, 2).join('.'), process.version.split('.')[0]];
+    for (var i = 0, len = versions.length; i < len && !binding; ++i) {
+        binding = tryLoadModule('./build/', 'kwfilter', process.platform + '-' + versions[i]);
+    }
+}
 
-if (!kwfilter)
+if (!binding)
     throw new Error("not found module for " + process.platform + '-' + process.version + '-' + process.arch);
 
 exports.newInstance = function(keywords, mode) {
-    return kwfilter.KeywordFilter(keywords, mode || 0);
+    return binding.KeywordFilter(keywords, mode || 0);
 };
