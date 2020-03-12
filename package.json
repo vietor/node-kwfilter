@@ -15,10 +15,9 @@
         "node": ">=0.8.0"
     },
     "dependencies": {
-        "nan": "^2.10.0"
+        "nan": "^2.14.0"
     },
-    "devDependencies": {
-    },
+    "devDependencies": {},
     "scripts": {
         "test": "node test"
     },

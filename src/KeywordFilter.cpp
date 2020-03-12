@@ -1,27 +1,34 @@
 #include <nan.h>
 #include "KeywordFilterCore.h"
 
-using namespace v8;
-using namespace node;
+#define THROW_ERROR(message)				\
+	Nan::ThrowTypeError(message);			\
+	return info.GetReturnValue().SetUndefined()	\
 
-#define ThrowTypeErrorAndReturnUndefined(message)		\
-	do {							\
-		Nan::ThrowTypeError(message);			\
-		return info.GetReturnValue().SetUndefined();	\
-	} while(0)
+#if NODE_MAJOR_VERSION < 11
+#define V8STRING_WRITE(source, buf, len)	\
+	source->Write(buf, 0, len)
+#else
+#define V8STRING_WRITE(source, buf, len)			\
+	source->Write(v8::Isolate::GetCurrent(), buf, 0, len)
+#endif
+
+#define KFSTRING_CREATE(name, source)				\
+	KFString name(source->Length());			\
+	V8STRING_WRITE(source, &name[0], source->Length())
 
 
-class KeywordFilter : public ObjectWrap
+class KeywordFilter : public Nan::ObjectWrap
 {
 public:
-	static void Init(Handle<Object> exports);
+	static NAN_MODULE_INIT(Init);
 
 private:
-	KeywordFilter(Handle<Array> keywords, KFMode mode);
+	KeywordFilter(v8::Local<v8::Array> keywords, KFMode mode);
 	~KeywordFilter();
 
 	KeywordFilterCore* core;
-	static Nan::Persistent<Function> constructor;
+	static Nan::Persistent<v8::Function> constructor;
 
 	static NAN_METHOD(NodeNew);
 	static NAN_METHOD(NodeExists);
@@ -30,18 +37,17 @@ private:
 	static NAN_METHOD(NodeParser);
 };
 
-Nan::Persistent<Function> KeywordFilter::constructor;
+Nan::Persistent<v8::Function> KeywordFilter::constructor;
 
-KeywordFilter::KeywordFilter(Handle<Array> keywords, KFMode mode)
+KeywordFilter::KeywordFilter(v8::Local<v8::Array> keywords, KFMode mode)
 {
 	KFStringArray keyword_array;
 	for(int i = 0; i< (int)keywords->Length(); ++i) {
-		Local<String> keyword = keywords->Get(i)->ToString();
+		v8::Local<v8::String> keyword = v8::Local<v8::String>::Cast(Nan::Get(keywords, i).ToLocalChecked());
 		if(keyword->Length() < 1)
 			continue;
 
-		KFString chars(keyword->Length());
-		keyword->Write(&chars[0], 0, keyword->Length());
+		KFSTRING_CREATE(chars, keyword);
 		keyword_array.push_back(chars);
 	}
 	this->core = new KeywordFilterCore(keyword_array, mode);
@@ -54,30 +60,30 @@ KeywordFilter::~KeywordFilter()
 
 NAN_METHOD(KeywordFilter::NodeNew) {
 	if(info.Length() < 1 || info.Length() > 2) {
-		ThrowTypeErrorAndReturnUndefined("Wrong number of arguments");
+		THROW_ERROR("Wrong number of arguments");
 	}
 	if(!info[0]->IsArray()) {
-		ThrowTypeErrorAndReturnUndefined("Wrong arguments, first string array");
+		THROW_ERROR("Wrong arguments, first string array");
 	}
 	if(info.Length() > 1) {
-		int tmp = info[1]->ToInteger()->Value();
+		int tmp = v8::Local<v8::Integer>::Cast(info[1])->Value();
 		if(tmp < 0 || tmp >= KFModeValueMax) {
-			ThrowTypeErrorAndReturnUndefined("Wrong arguments, second must [0-1]");
+			THROW_ERROR("Wrong arguments, second must [0-1]");
 		}
 	}
 
 
 	if (info.IsConstructCall()) {
-		Local<Array> keywords = Local<Array>::Cast(info[0]);
+		v8::Local<v8::Array> keywords = v8::Local<v8::Array>::Cast(info[0]);
 		for(int i = 0; i< (int)keywords->Length(); ++i) {
-			if(!keywords->Get(i)->IsString()) {
-				ThrowTypeErrorAndReturnUndefined("Wrong arguments, first string array");
+			if(!Nan::Get(keywords, i).ToLocalChecked()->IsString()) {
+				THROW_ERROR("Wrong arguments, first string array");
 			}
 		}
 
 		KFMode mode = KFModeDeep;
 		if(info.Length() > 1)
-			mode = (KFMode)info[1]->ToInteger()->Value();
+			mode = (KFMode)v8::Local<v8::Integer>::Cast(info[1])->Value();
 
 		KeywordFilter* obj = new KeywordFilter(keywords, mode);
 		obj->Wrap(info.This());
@@ -85,27 +91,26 @@ NAN_METHOD(KeywordFilter::NodeNew) {
 	}
 	else {
 		const int argc = 2;
-		Local<Value> argv[argc] = { info[0], info[1] };
-		Local<Function> cons = Nan::New(constructor);
+		v8::Local<v8::Value> argv[argc] = { info[0], info[1] };
+		v8::Local<v8::Function> cons = Nan::New(constructor);
 		info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
 	}
 }
 
 NAN_METHOD(KeywordFilter::NodeExists) {
 	if(info.Length() != 1) {
-		ThrowTypeErrorAndReturnUndefined("Wrong number of arguments");
+		THROW_ERROR("Wrong number of arguments");
 	}
 	if(!info[0]->IsString()) {
-		ThrowTypeErrorAndReturnUndefined("Wrong arguments, (string)");
+		THROW_ERROR("Wrong arguments, (string)");
 	}
 
-	Local<String> text = info[0]->ToString();
-	KeywordFilter* obj = ObjectWrap::Unwrap<KeywordFilter>(info.This());
+	v8::Local<v8::String> text = v8::Local<v8::String>::Cast(info[0]);
+	KeywordFilter* obj = Nan::ObjectWrap::Unwrap<KeywordFilter>(info.This());
 
 	bool retVal = false;
 	if(text->Length() > 0) {
-		KFString chars(text->Length());
-		text->Write(&chars[0], 0, text->Length());
+		KFSTRING_CREATE(chars, text);
 		retVal = obj->core->exists(chars);
 	}
 
@@ -114,34 +119,33 @@ NAN_METHOD(KeywordFilter::NodeExists) {
 
 NAN_METHOD(KeywordFilter::NodeFilter) {
 	if(info.Length() < 1 || info.Length() > 3) {
-		ThrowTypeErrorAndReturnUndefined("Wrong number of arguments");
+		THROW_ERROR("Wrong number of arguments");
 	}
 	if(!info[0]->IsString() || !info[1]->IsString() || (info.Length() > 2 && !info[2]->IsNumber())) {
-		ThrowTypeErrorAndReturnUndefined("Wrong arguments, (string, char, [int])");
+		THROW_ERROR("Wrong arguments, (string, char, [int])");
 	}
 
-	Local<String> cover = info[1]->ToString();
+	v8::Local<v8::String> cover = v8::Local<v8::String>::Cast(info[1]);
 	if(cover->Length() < 1) {
-		ThrowTypeErrorAndReturnUndefined("Wrong arguments, second is char");
+		THROW_ERROR("Wrong arguments, second is char");
 	}
 	int border = 0;
 	if(info.Length() > 2) {
-		border = info[2]->ToInteger()->Value();
+		border = v8::Local<v8::Integer>::Cast(info[2])->Value();
 		if(border < 3) {
-			ThrowTypeErrorAndReturnUndefined("Wrong arguments, third must >= 3");
+			THROW_ERROR("Wrong arguments, third must >= 3");
 		}
 	}
 
-	Local<String> text = info[0]->ToString();
-	KeywordFilter* obj = ObjectWrap::Unwrap<KeywordFilter>(info.This());
+	v8::Local<v8::String> text = v8::Local<v8::String>::Cast(info[0]);
+	KeywordFilter* obj = Nan::ObjectWrap::Unwrap<KeywordFilter>(info.This());
 
-	Local<String> retVal = text;
+	v8::Local<v8::String> retVal = text;
 	if(text->Length() > 0) {
+		KFString output;
 		KFChar cover_char;
-		KFString output,
-			chars(text->Length());
-		text->Write(&chars[0], 0, text->Length());
-		cover->Write(&cover_char, 0, 1);
+		KFSTRING_CREATE(chars, text);
+		V8STRING_WRITE(cover, &cover_char, 1);
 		if(obj->core->filter(output, chars, cover_char, border))
 			retVal = Nan::New(&output[0], (int)output.size()).ToLocalChecked();
 	}
@@ -151,27 +155,23 @@ NAN_METHOD(KeywordFilter::NodeFilter) {
 
 NAN_METHOD(KeywordFilter::NodeRender) {
 	if(info.Length() != 3) {
-		ThrowTypeErrorAndReturnUndefined("Wrong number of arguments");
+		THROW_ERROR("Wrong number of arguments");
 	}
 	if(!info[0]->IsString() || !info[1]->IsString() || !info[2]->IsString()) {
-		ThrowTypeErrorAndReturnUndefined("Wrong arguments, (string, prefix, suffix)");
+		THROW_ERROR("Wrong arguments, (string, prefix, suffix)");
 	}
 
-	Local<String> text = info[0]->ToString();
-	Local<String> prefix = info[1]->ToString();
-	Local<String> suffix = info[2]->ToString();
-	KeywordFilter* obj = ObjectWrap::Unwrap<KeywordFilter>(info.This());
+	v8::Local<v8::String> text = v8::Local<v8::String>::Cast(info[0]);
+	v8::Local<v8::String> prefix = v8::Local<v8::String>::Cast(info[1]);
+	v8::Local<v8::String> suffix = v8::Local<v8::String>::Cast(info[2]);
+	KeywordFilter* obj = Nan::ObjectWrap::Unwrap<KeywordFilter>(info.This());
 
-
-	Local<String> retVal = text;
+	v8::Local<v8::String> retVal = text;
 	if(text->Length() > 0) {
-		KFString output,
-			chars(text->Length()),
-			prefix_chars(prefix->Length()),
-			suffix_chars(suffix->Length());
-		text->Write(&chars[0], 0, text->Length());
-		prefix->Write(&prefix_chars[0], 0, prefix->Length());
-		suffix->Write(&suffix_chars[0], 0, suffix->Length());
+		KFString output;
+		KFSTRING_CREATE(chars, text);
+		KFSTRING_CREATE(prefix_chars, prefix);
+		KFSTRING_CREATE(suffix_chars, suffix);
 		if(obj->core->render(output, chars, prefix_chars, suffix_chars))
 			retVal =  Nan::New(&output[0], (int)output.size()).ToLocalChecked();
 	}
@@ -181,27 +181,25 @@ NAN_METHOD(KeywordFilter::NodeRender) {
 
 NAN_METHOD(KeywordFilter::NodeParser) {
 	if(info.Length() != 1) {
-		ThrowTypeErrorAndReturnUndefined("Wrong number of arguments");
+		THROW_ERROR("Wrong number of arguments");
 	}
 	if(!info[0]->IsString()) {
-		ThrowTypeErrorAndReturnUndefined("Wrong arguments, (string)");
+		THROW_ERROR("Wrong arguments, (string)");
 	}
 
-	Local<String> text = info[0]->ToString();
-	KeywordFilter* obj = ObjectWrap::Unwrap<KeywordFilter>(info.This());
+	v8::Local<v8::String> text = v8::Local<v8::String>::Cast(info[0]);
+	KeywordFilter* obj = Nan::ObjectWrap::Unwrap<KeywordFilter>(info.This());
 
-
-	Local<Array> retVal = Nan::New<Array>();
+	v8::Local<v8::Array> retVal = Nan::New<v8::Array>();
 	if(text->Length() > 0) {
 		KFPositionArray output;
-		KFString chars(text->Length());
-		text->Write(&chars[0], 0, text->Length());
+		KFSTRING_CREATE(chars, text);
 		if(obj->core->parser(output, chars)) {
 			size_t i = 0;
 			for(auto it = output.begin(); it != output.end(); ++it) {
-				Local<Object> obj = Nan::New<Object>();
-				Nan::Set(obj, Nan::New<String>("pos").ToLocalChecked(), Nan::New<Integer>((uint32_t)it->pos));
-				Nan::Set(obj, Nan::New<String>("count").ToLocalChecked(), Nan::New<Integer>((uint32_t)it->count));
+				v8::Local<v8::Object> obj = Nan::New<v8::Object>();
+				Nan::Set(obj, Nan::New<v8::String>("pos").ToLocalChecked(), Nan::New<v8::Integer>((uint32_t)it->pos));
+				Nan::Set(obj, Nan::New<v8::String>("count").ToLocalChecked(), Nan::New<v8::Integer>((uint32_t)it->count));
 				Nan::Set(retVal, i++, obj);
 			}
 		}
@@ -210,8 +208,10 @@ NAN_METHOD(KeywordFilter::NodeParser) {
 	info.GetReturnValue().Set(retVal);
 }
 
-void KeywordFilter::Init(Handle<Object> exports) {
-	Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(NodeNew);
+NAN_MODULE_INIT(KeywordFilter::Init) {
+	v8::Local<v8::Context> context = target->CreationContext();
+
+	v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(NodeNew);
 	tpl->SetClassName(Nan::New("KeywordFilter").ToLocalChecked());
 	tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
@@ -220,8 +220,8 @@ void KeywordFilter::Init(Handle<Object> exports) {
 	Nan::SetPrototypeMethod(tpl, "render", NodeRender);
 	Nan::SetPrototypeMethod(tpl, "parser", NodeParser);
 
-	constructor.Reset(tpl->GetFunction());
-	exports->Set(Nan::New("KeywordFilter").ToLocalChecked(), tpl->GetFunction());
+	constructor.Reset(tpl->GetFunction(context).ToLocalChecked());
+	target->Set(context, Nan::New("KeywordFilter").ToLocalChecked(), tpl->GetFunction(context).ToLocalChecked());
 }
 
 NODE_MODULE(kwfilter, KeywordFilter::Init)
